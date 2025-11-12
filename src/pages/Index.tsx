@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import ExperienceCard from "@/components/ExperienceCard";
 import { ArrowRight, Heart, Lightbulb, Users } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -159,6 +160,8 @@ const Index = () => {
           </Link>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 };

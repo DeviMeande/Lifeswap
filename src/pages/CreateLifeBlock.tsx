@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const CreateLifeBlock = () => {
   const { toast } = useToast();
@@ -18,13 +19,47 @@ const CreateLifeBlock = () => {
     location: "",
     description: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Life Block Created!",
-      description: "Your experience has been published and is now available for others to explore.",
-    });
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await (supabase as any)
+        .from("Lifeblock")
+        .insert([{
+          "Experience Title": formData.title,
+          "Category": formData.category,
+          "Duration": formData.duration,
+          "locationtype": formData.location,
+          "description": formData.description,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Life Block Created!",
+        description: "Your experience has been published and is now available for others to explore.",
+      });
+
+      // Reset form
+      setFormData({
+        title: "",
+        category: "",
+        duration: "",
+        location: "",
+        description: "",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create life block. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -125,10 +160,10 @@ const CreateLifeBlock = () => {
                 </div>
 
                 <div className="flex gap-4">
-                  <Button type="submit" variant="hero" className="flex-1">
-                    Create Life Block
+                  <Button type="submit" variant="hero" className="flex-1" disabled={isSubmitting}>
+                    {isSubmitting ? "Creating..." : "Create Life Block"}
                   </Button>
-                  <Button type="button" variant="outline" className="flex-1">
+                  <Button type="button" variant="outline" className="flex-1" disabled={isSubmitting}>
                     Save as Draft
                   </Button>
                 </div>

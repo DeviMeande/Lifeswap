@@ -55,12 +55,12 @@ const Index = () => {
                 Swap life experiences with people from different walks of life. Build empathy, gain perspective, and discover new possibilities.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link to="/explore">
+                <a href="https://life-swap.com/explore" target="_blank" rel="noopener noreferrer">
                   <Button variant="hero" size="lg" className="group">
                     Explore Experiences
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
-                </Link>
+                </a>
                 <Link to="/create">
                   <Button variant="outline" size="lg">
                     Share Your Life

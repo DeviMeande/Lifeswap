@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Compass, User, Award } from "lucide-react";
+import { Compass, User, Award, UserCircle } from "lucide-react";
 
 const Navigation = () => {
   return (
@@ -22,6 +22,10 @@ const Navigation = () => {
           <Link to="/badges" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
             <Award className="w-4 h-4" />
             My Badges
+          </Link>
+          <Link to="/profile" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
+            <UserCircle className="w-4 h-4" />
+            Profile
           </Link>
         </div>
         

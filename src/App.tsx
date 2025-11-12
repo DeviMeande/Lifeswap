@@ -8,6 +8,7 @@ import Explore from "./pages/Explore";
 import ExperienceDetail from "./pages/ExperienceDetail";
 import CreateLifeBlock from "./pages/CreateLifeBlock";
 import Badges from "./pages/Badges";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/experience/:id" element={<ExperienceDetail />} />
           <Route path="/create" element={<CreateLifeBlock />} />
           <Route path="/badges" element={<Badges />} />
+          <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

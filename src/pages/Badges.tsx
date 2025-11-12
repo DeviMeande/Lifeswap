@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Lock } from "lucide-react";
@@ -148,6 +149,8 @@ const Badges = () => {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

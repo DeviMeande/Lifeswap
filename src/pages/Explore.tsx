@@ -1,4 +1,5 @@
 import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import ExperienceCard from "@/components/ExperienceCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,8 @@ const Explore = () => {
           </div>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 };

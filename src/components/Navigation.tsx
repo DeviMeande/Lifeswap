@@ -28,8 +28,10 @@ const Navigation = () => {
             Profile
           </Link>
         </div>
+         <Link to="/create">
+         <Button variant="hero" size="sm">Get Started</Button>
+         </Link>
         
-        <Button variant="hero" size="sm">Get Started</Button>
       </div>
     </nav>
   );

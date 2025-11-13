@@ -33,7 +33,7 @@ const Profile = () => {
       if (!user) return null;
       const { data, error } = await (supabase as any)
         .from('user')
-        .select('*')
+        .select('userName, name')
         .eq('id', user.id)
         .single();
       
@@ -112,10 +112,10 @@ const Profile = () => {
               <div className="flex flex-col md:flex-row items-center gap-6">
                 <Avatar className="h-24 w-24">
                   <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} alt="User" />
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">{userProfile?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">{userProfile?.name?.charAt(0)?.toUpperCase() || userProfile?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-center md:text-left">
-                  <h1 className="text-3xl font-bold text-foreground mb-2">{userProfile?.userName || 'User'}</h1>
+                  <h1 className="text-3xl font-bold text-foreground mb-2">{userProfile?.name || userProfile?.userName || 'User'}</h1>
                   <p className="text-muted-foreground mb-4">{user?.email}</p>
                   <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                     <Badge variant="secondary">
@@ -236,9 +236,17 @@ const Profile = () => {
                     <div>
                       <Label htmlFor="name" className="flex items-center gap-2">
                         <User className="w-4 h-4" />
+                        Full Name
+                      </Label>
+                      <Input id="name" defaultValue={userProfile?.name || ''} className="mt-2" />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="username" className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
                         Username
                       </Label>
-                      <Input id="name" defaultValue={userProfile?.userName || ''} className="mt-2" />
+                      <Input id="username" defaultValue={userProfile?.userName || ''} className="mt-2" />
                     </div>
 
                     <div>

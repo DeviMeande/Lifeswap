@@ -14,7 +14,175 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      lifeBlock: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration: string | null
+          goals: string[] | null
+          id: number
+          locationType: string | null
+          title: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration?: string | null
+          goals?: string[] | null
+          id?: number
+          locationType?: string | null
+          title?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration?: string | null
+          goals?: string[] | null
+          id?: number
+          locationType?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifeBlock_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Lifeblock: {
+        Row: {
+          Category: string | null
+          created_at: string
+          description: string | null
+          Duration: string | null
+          "Experience Title": string
+          id: number
+          locationtype: string | null
+        }
+        Insert: {
+          Category?: string | null
+          created_at?: string
+          description?: string | null
+          Duration?: string | null
+          "Experience Title": string
+          id?: number
+          locationtype?: string | null
+        }
+        Update: {
+          Category?: string | null
+          created_at?: string
+          description?: string | null
+          Duration?: string | null
+          "Experience Title"?: string
+          id?: number
+          locationtype?: string | null
+        }
+        Relationships: []
+      }
+      lifeBlockTasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration: string | null
+          id: number
+          lifeBlockId: number | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: number
+          lifeBlockId?: number | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: number
+          lifeBlockId?: number | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifeBlockTasks_lifeBlockId_fkey"
+            columns: ["lifeBlockId"]
+            isOneToOne: false
+            referencedRelation: "lifeBlock"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          userName: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          userName?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          userName?: string | null
+        }
+        Relationships: []
+      }
+      userwiseExperiences: {
+        Row: {
+          created_at: string
+          id: number
+          lifeblock: number | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          lifeblock?: number | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          lifeblock?: number | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "userwiseExperiences_lifeblock_fkey"
+            columns: ["lifeblock"]
+            isOneToOne: false
+            referencedRelation: "lifeBlock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "userwiseExperiences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

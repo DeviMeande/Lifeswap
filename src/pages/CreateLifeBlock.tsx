@@ -7,13 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const CreateLifeBlock = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -23,11 +25,28 @@ const CreateLifeBlock = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth?redirect=/create");
+    }
+  }, [user, loading, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to create a life block.",
+          variant: "destructive",
+        });
+        navigate("/auth?redirect=/create");
+        return;
+      }
+
       const { data, error } = await (supabase as any)
         .from("lifeBlock")
         .insert({
@@ -36,8 +55,7 @@ const CreateLifeBlock = () => {
           "duration": formData.duration,
           "locationType": formData.location,
           "description": formData.description,
-          "created_at": new Date(),
-          "createdBy": 1
+          "created_by": user.id
         })
         .select()
         .single();
@@ -61,6 +79,18 @@ const CreateLifeBlock = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-xl text-muted-foreground">Loading...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

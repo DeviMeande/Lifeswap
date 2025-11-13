@@ -10,14 +10,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Mail, Calendar, CheckCircle2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { Textarea } from "@/components/ui/textarea";
 
 const Profile = () => {
-  const userId = 1; // Hardcoded for now
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth?redirect=/profile");
+    }
+  }, [user, authLoading, navigate]);
+
+  // Fetch user profile data
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await (supabase as any)
+        .from('user')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const { data: userExperiences, isLoading: loadingExperiences } = useQuery({
-    queryKey: ['userExperiences', userId],
+    queryKey: ['userExperiences', user?.id],
     queryFn: async () => {
+      if (!user) return [];
       const { data, error } = await (supabase as any)
         .from('userwiseExperiences')
         .select(`
@@ -28,25 +57,40 @@ const Profile = () => {
             duration
           )
         `)
-        .eq('user', userId);
+        .eq('user_id', user.id);
       
       if (error) throw error;
       return data || [];
     },
+    enabled: !!user,
   });
 
   const { data: createdBlocks, isLoading: loadingBlocks } = useQuery({
-    queryKey: ['createdBlocks', userId],
+    queryKey: ['createdBlocks', user?.id],
     queryFn: async () => {
+      if (!user) return [];
       const { data, error } = await (supabase as any)
         .from('lifeBlock')
         .select('*')
-        .eq('createdBy', userId);
+        .eq('created_by', user.id);
       
       if (error) throw error;
       return data || [];
     },
+    enabled: !!user,
   });
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-xl text-muted-foreground">Loading...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   const completedExperiences = userExperiences?.map((exp: any) => ({
     id: exp.id,
@@ -67,12 +111,12 @@ const Profile = () => {
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row items-center gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">JD</AvatarFallback>
+                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} alt="User" />
+                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">{userProfile?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-center md:text-left">
-                  <h1 className="text-3xl font-bold text-foreground mb-2">John Doe</h1>
-                  <p className="text-muted-foreground mb-4">Life Explorer • Empathy Builder</p>
+                  <h1 className="text-3xl font-bold text-foreground mb-2">{userProfile?.userName || 'User'}</h1>
+                  <p className="text-muted-foreground mb-4">{user?.email}</p>
                   <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                     <Badge variant="secondary">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -192,9 +236,9 @@ const Profile = () => {
                     <div>
                       <Label htmlFor="name" className="flex items-center gap-2">
                         <User className="w-4 h-4" />
-                        Full Name
+                        Username
                       </Label>
-                      <Input id="name" defaultValue="John Doe" className="mt-2" />
+                      <Input id="name" defaultValue={userProfile?.userName || ''} className="mt-2" />
                     </div>
 
                     <div>
@@ -202,16 +246,16 @@ const Profile = () => {
                         <Mail className="w-4 h-4" />
                         Email Address
                       </Label>
-                      <Input id="email" type="email" defaultValue="john.doe@example.com" className="mt-2" />
+                      <Input id="email" type="email" defaultValue={user?.email || ''} className="mt-2" disabled />
                     </div>
 
                     <div>
                       <Label htmlFor="bio">Bio</Label>
-                      <Input 
+                      <Textarea 
                         id="bio" 
-                        defaultValue="Life Explorer • Empathy Builder" 
                         className="mt-2"
                         placeholder="Tell us about yourself..."
+                        rows={4}
                       />
                     </div>
                   </div>

@@ -8,10 +8,14 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const ExperienceDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [isStarting, setIsStarting] = useState(false);
 
   const { data: lifeBlock, isLoading } = useQuery({
@@ -42,12 +46,17 @@ const ExperienceDetail = () => {
   });
 
   const handleStartExperience = async () => {
+    if (!user) {
+      navigate(`/auth?redirect=/experience/${id}`);
+      return;
+    }
+
     setIsStarting(true);
     try {
       const { error } = await (supabase as any)
         .from('userwiseExperiences')
         .insert({
-          user: 1,
+          user_id: user.id,
           lifeblock: id,
           status: 'In-Progress'
         });

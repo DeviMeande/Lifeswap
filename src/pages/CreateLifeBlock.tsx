@@ -8,10 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const CreateLifeBlock = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -26,7 +28,7 @@ const CreateLifeBlock = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("lifeBlock")
         .insert({
           "title": formData.title,
@@ -34,25 +36,21 @@ const CreateLifeBlock = () => {
           "duration": formData.duration,
           "locationType": formData.location,
           "description": formData.description,
-          "created_at":new Date(),
-          "createdBy":1
-        });
+          "created_at": new Date(),
+          "createdBy": 1
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
       toast({
         title: "Life Block Created!",
-        description: "Your experience has been published and is now available for others to explore.",
+        description: "Now let's add goals and tasks to complete your experience.",
       });
 
-      // Reset form
-      setFormData({
-        title: "",
-        category: "",
-        duration: "",
-        location: "",
-        description: "",
-      });
+      // Navigate to next steps page with the created life block ID
+      navigate(`/create/steps/${data.id}`);
     } catch (error) {
       toast({
         title: "Error",

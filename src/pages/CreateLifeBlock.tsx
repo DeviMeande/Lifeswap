@@ -12,6 +12,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { lifeBlockSchema } from "@/lib/validationSchemas";
+import { z } from "zod";
 
 const CreateLifeBlock = () => {
   const { id } = useParams();
@@ -26,6 +28,7 @@ const CreateLifeBlock = () => {
     description: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const isEditMode = !!id;
 
   // Fetch existing life block data if editing
@@ -67,6 +70,29 @@ const CreateLifeBlock = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors({});
+
+    // Validate input
+    try {
+      lifeBlockSchema.parse(formData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: { [key: string]: string } = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            errors[err.path[0] as string] = err.message;
+          }
+        });
+        setFormErrors(errors);
+        toast({
+          title: "Validation Error",
+          description: "Please fix the errors in the form.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -175,6 +201,7 @@ const CreateLifeBlock = () => {
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     required
                   />
+                  {formErrors.title && <p className="text-sm text-destructive">{formErrors.title}</p>}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
@@ -197,6 +224,7 @@ const CreateLifeBlock = () => {
                         <SelectItem value="Urban Living">Urban Living</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formErrors.category && <p className="text-sm text-destructive">{formErrors.category}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -215,6 +243,7 @@ const CreateLifeBlock = () => {
                         <SelectItem value="4 Hours">4 Hours</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formErrors.duration && <p className="text-sm text-destructive">{formErrors.duration}</p>}
                   </div>
                 </div>
 
@@ -233,6 +262,7 @@ const CreateLifeBlock = () => {
                       <SelectItem value="Hybrid">Hybrid</SelectItem>
                     </SelectContent>
                   </Select>
+                  {formErrors.location && <p className="text-sm text-destructive">{formErrors.location}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -245,6 +275,7 @@ const CreateLifeBlock = () => {
                     rows={6}
                     required
                   />
+                  {formErrors.description && <p className="text-sm text-destructive">{formErrors.description}</p>}
                 </div>
 
                 <div className="bg-muted/30 p-6 rounded-lg">

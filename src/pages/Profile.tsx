@@ -8,50 +8,53 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Mail, Calendar, CheckCircle2, Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 const Profile = () => {
-  // Mock data for completed experiences
-  const completedExperiences = [
-    {
-      id: 1,
-      title: "Morning as a Barista",
-      host: "Sarah Chen",
-      completedDate: "2024-01-15",
-      category: "Creative"
-    },
-    {
-      id: 2,
-      title: "Afternoon as a UX Designer",
-      host: "Marcus Johnson",
-      completedDate: "2024-01-10",
-      category: "Professional"
-    },
-    {
-      id: 3,
-      title: "Evening at Food Kitchen",
-      host: "Elena Rodriguez",
-      completedDate: "2024-01-05",
-      category: "Community"
-    }
-  ];
+  const userId = 1; // Hardcoded for now
 
-  // Mock data for created life blocks
-  const createdBlocks = [
-    {
-      id: 1,
-      title: "Day as a Software Developer",
-      participants: 12,
-      category: "Professional",
-      status: "Active"
+  const { data: userExperiences, isLoading: loadingExperiences } = useQuery({
+    queryKey: ['userExperiences', userId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('userwiseExperiences')
+        .select(`
+          *,
+          lifeBlock:lifeblock (
+            title,
+            category,
+            duration
+          )
+        `)
+        .eq('user', userId);
+      
+      if (error) throw error;
+      return data || [];
     },
-    {
-      id: 2,
-      title: "Weekend Gardening Session",
-      participants: 8,
-      category: "Lifestyle",
-      status: "Active"
-    }
-  ];
+  });
+
+  const { data: createdBlocks, isLoading: loadingBlocks } = useQuery({
+    queryKey: ['createdBlocks', userId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lifeBlock')
+        .select('*')
+        .eq('createdBy', userId);
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const completedExperiences = userExperiences?.map((exp: any) => ({
+    id: exp.id,
+    title: exp.lifeBlock?.title || "Unknown Experience",
+    status: exp.status,
+    category: exp.lifeBlock?.category || "Uncategorized",
+    startedDate: new Date(exp.created_at).toLocaleDateString(),
+  })) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,7 +80,7 @@ const Profile = () => {
                     </Badge>
                     <Badge variant="secondary">
                       <Package className="w-3 h-3 mr-1" />
-                      {createdBlocks.length} Life Blocks
+                      {createdBlocks?.length || 0} Life Blocks
                     </Badge>
                   </div>
                 </div>
@@ -95,33 +98,43 @@ const Profile = () => {
 
             {/* Completed Experiences Tab */}
             <TabsContent value="completed" className="space-y-4">
-              {completedExperiences.length === 0 ? (
+              {loadingExperiences ? (
+                <Card>
+                  <CardContent className="pt-6 text-center py-12">
+                    <p className="text-muted-foreground">Loading experiences...</p>
+                  </CardContent>
+                </Card>
+              ) : completedExperiences.length === 0 ? (
                 <Card>
                   <CardContent className="pt-6 text-center py-12">
                     <CheckCircle2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No completed experiences yet. Start exploring!</p>
+                    <p className="text-muted-foreground">No experiences yet. Start exploring!</p>
                     <Button variant="hero" className="mt-4" asChild>
-                      <a href="/explore">Browse Experiences</a>
+                      <Link to="/explore">Explore Experiences</Link>
                     </Button>
                   </CardContent>
                 </Card>
               ) : (
-                completedExperiences.map((exp) => (
-                  <Card key={exp.id} className="hover:shadow-elevated transition-shadow">
+                completedExperiences.map((experience: any) => (
+                  <Card key={experience.id}>
                     <CardContent className="pt-6">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-foreground mb-2">{exp.title}</h3>
-                          <p className="text-muted-foreground text-sm mb-2">Hosted by {exp.host}</p>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-semibold">{experience.title}</h3>
+                            <Badge variant="secondary">{experience.category}</Badge>
+                          </div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant={experience.status === "In-Progress" ? "default" : "outline"}>
+                              {experience.status}
+                            </Badge>
+                          </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4" />
-                            Completed on {new Date(exp.completedDate).toLocaleDateString()}
+                            <span>Started on {experience.startedDate}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge>{exp.category}</Badge>
-                          <CheckCircle2 className="w-5 h-5 text-primary" />
-                        </div>
+                        <CheckCircle2 className="w-6 h-6 text-secondary" />
                       </div>
                     </CardContent>
                   </Card>
@@ -131,35 +144,36 @@ const Profile = () => {
 
             {/* Created Life Blocks Tab */}
             <TabsContent value="created" className="space-y-4">
-              {createdBlocks.length === 0 ? (
+              {loadingBlocks ? (
+                <Card>
+                  <CardContent className="pt-6 text-center py-12">
+                    <p className="text-muted-foreground">Loading life blocks...</p>
+                  </CardContent>
+                </Card>
+              ) : !createdBlocks || createdBlocks.length === 0 ? (
                 <Card>
                   <CardContent className="pt-6 text-center py-12">
                     <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">You haven't created any life blocks yet.</p>
                     <Button variant="hero" className="mt-4" asChild>
-                      <a href="/create">Create Life Block</a>
+                      <Link to="/create">Create Life Block</Link>
                     </Button>
                   </CardContent>
                 </Card>
               ) : (
-                createdBlocks.map((block) => (
+                createdBlocks.map((block: any) => (
                   <Card key={block.id} className="hover:shadow-elevated transition-shadow">
                     <CardContent className="pt-6">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex-1">
                           <h3 className="text-xl font-semibold text-foreground mb-2">{block.title}</h3>
                           <p className="text-muted-foreground text-sm mb-2">
-                            {block.participants} participants
+                            {block.duration || "Not specified"}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge>{block.category}</Badge>
-                          <Badge variant="secondary">{block.status}</Badge>
+                          <Badge>{block.category || "Uncategorized"}</Badge>
                         </div>
-                      </div>
-                      <div className="flex gap-2 mt-4">
-                        <Button variant="outline" size="sm">Edit</Button>
-                        <Button variant="outline" size="sm">View</Button>
                       </div>
                     </CardContent>
                   </Card>

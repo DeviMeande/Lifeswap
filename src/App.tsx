@@ -10,6 +10,7 @@ import CreateLifeBlock from "./pages/CreateLifeBlock";
 import LifeBlockSteps from "./pages/LifeBlockSteps";
 import Badges from "./pages/Badges";
 import Profile from "./pages/Profile";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/create/steps/:id" element={<LifeBlockSteps />} />
           <Route path="/badges" element={<Badges />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -67,6 +67,9 @@ const ExperienceDetail = () => {
         title: "Experience Started!",
         description: "You can now track your progress in your profile.",
       });
+
+      // Redirect to profile page
+      navigate('/profile');
     } catch (error) {
       toast({
         title: "Error",

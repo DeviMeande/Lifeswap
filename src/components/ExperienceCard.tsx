@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 interface ExperienceCardProps {
   id: number;
   title: string;
-  author: string;
+  author?: string;
   duration: string;
   location: string;
   category: string;
@@ -26,7 +26,7 @@ const ExperienceCard = ({ id, title, author, duration, location, category, descr
         </div>
         <CardContent className="p-6">
           <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">{title}</h3>
-          <p className="text-muted-foreground text-sm mb-4">by {author}</p>
+          {author && <p className="text-muted-foreground text-sm mb-4">by {author}</p>}
           <p className="text-foreground/80 mb-4 line-clamp-2">{description}</p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">

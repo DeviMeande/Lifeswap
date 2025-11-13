@@ -23,7 +23,12 @@ const ExperienceDetail = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('lifeBlock')
-        .select('*')
+        .select(`
+          *,
+          creator:created_by (
+            userName
+          )
+        `)
         .eq('id', id)
         .single();
       
@@ -126,7 +131,7 @@ const ExperienceDetail = () => {
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">{lifeBlock.title}</h1>
                 <div className="flex items-center gap-2 text-muted-foreground mb-4">
                   <User className="w-4 h-4" />
-                  <span>Created by LifeSwap User</span>
+                  <span>Created by {lifeBlock.creator?.userName || 'LifeSwap User'}</span>
                 </div>
               </div>
             </div>

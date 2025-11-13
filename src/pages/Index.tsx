@@ -14,7 +14,12 @@ const Index = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('lifeBlock')
-        .select('*')
+        .select(`
+          *,
+          creator:created_by (
+            userName
+          )
+        `)
         .order('created_at', { ascending: false })
         .limit(3);
       
@@ -141,6 +146,7 @@ const Index = () => {
                   location={experience.locationType}
                   category={experience.category}
                   description={experience.description}
+                  creatorName={experience.creator?.userName}
                 />
               ))
             )}

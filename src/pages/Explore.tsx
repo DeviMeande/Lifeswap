@@ -22,7 +22,12 @@ const Explore = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('lifeBlock')
-        .select('*')
+        .select(`
+          *,
+          creator:created_by (
+            userName
+          )
+        `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -33,7 +38,7 @@ const Explore = () => {
   const experiences = lifeBlocks?.map((block: any) => ({
     id: block.id,
     title: block.title || "Untitled Experience",
-    author: "LifeSwap User",
+    creatorName: block.creator?.userName,
     duration: block.duration || "Not specified",
     location: block.locationType || "Not specified",
     category: block.category || "Uncategorized",

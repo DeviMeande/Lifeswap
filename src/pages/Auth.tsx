@@ -17,7 +17,7 @@ const Auth = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [signupData, setSignupData] = useState({ email: "", password: "", userName: "" });
+  const [signupData, setSignupData] = useState({ email: "", password: "", userName: "", name: "" });
 
   // Redirect if already logged in
   useEffect(() => {
@@ -71,6 +71,7 @@ const Auth = () => {
           emailRedirectTo: redirectUrl,
           data: {
             userName: signupData.userName,
+            name: signupData.name,
           },
         },
       });
@@ -157,10 +158,20 @@ const Auth = () => {
                 <CardContent>
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-2">
+                      <Label htmlFor="signup-name">Full Name</Label>
+                      <Input
+                        id="signup-name"
+                        placeholder="John Doe"
+                        value={signupData.name}
+                        onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="signup-username">Username</Label>
                       <Input
                         id="signup-username"
-                        placeholder="Your name"
+                        placeholder="johndoe"
                         value={signupData.userName}
                         onChange={(e) => setSignupData({ ...signupData, userName: e.target.value })}
                         required

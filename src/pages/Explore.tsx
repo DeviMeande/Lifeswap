@@ -24,8 +24,8 @@ const Explore = () => {
         .from('lifeBlock')
         .select(`
           *,
-          creator:created_by (
-            userName
+          creator:user!created_by (
+            name
           )
         `)
         .order('created_at', { ascending: false });
@@ -38,7 +38,7 @@ const Explore = () => {
   const experiences = lifeBlocks?.map((block: any) => ({
     id: block.id,
     title: block.title || "Untitled Experience",
-    creatorName: block.creator?.userName,
+    creatorName: block.creator?.name,
     duration: block.duration || "Not specified",
     location: block.locationType || "Not specified",
     category: block.category || "Uncategorized",

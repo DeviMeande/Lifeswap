@@ -16,8 +16,8 @@ const Index = () => {
         .from('lifeBlock')
         .select(`
           *,
-          creator:created_by (
-            userName
+          creator:user!created_by (
+            name
           )
         `)
         .order('created_at', { ascending: false })
@@ -146,7 +146,7 @@ const Index = () => {
                   location={experience.locationType}
                   category={experience.category}
                   description={experience.description}
-                  creatorName={experience.creator?.userName}
+                  creatorName={experience.creator?.name}
                 />
               ))
             )}

@@ -25,8 +25,8 @@ const ExperienceDetail = () => {
         .from('lifeBlock')
         .select(`
           *,
-          creator:created_by (
-            userName
+          creator:user!created_by (
+            name
           )
         `)
         .eq('id', id)
@@ -131,7 +131,7 @@ const ExperienceDetail = () => {
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">{lifeBlock.title}</h1>
                 <div className="flex items-center gap-2 text-muted-foreground mb-4">
                   <User className="w-4 h-4" />
-                  <span>Created by {lifeBlock.creator?.userName || 'Anonymous'}</span>
+                  <span>Created by {lifeBlock.creator?.name || 'Anonymous'}</span>
                 </div>
               </div>
             </div>

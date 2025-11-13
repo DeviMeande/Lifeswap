@@ -9,15 +9,24 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Mail, Calendar, CheckCircle2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    userName: '',
+    bio: ''
+  });
 
   // Redirect if not logged in
   useEffect(() => {
@@ -42,6 +51,56 @@ const Profile = () => {
     },
     enabled: !!user,
   });
+
+  // Update form data when profile loads
+  useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        name: userProfile.name || '',
+        userName: userProfile.userName || '',
+        bio: ''
+      });
+    }
+  }, [userProfile]);
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { name: string; userName: string }) => {
+      if (!user) throw new Error("No user");
+      
+      const { error } = await (supabase as any)
+        .from('user')
+        .update({
+          name: data.name,
+          userName: data.userName
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.id] });
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Profile update error:", error);
+    },
+  });
+
+  const handleSaveChanges = () => {
+    updateProfileMutation.mutate({
+      name: formData.name,
+      userName: formData.userName
+    });
+  };
 
   const { data: userExperiences, isLoading: loadingExperiences } = useQuery({
     queryKey: ['userExperiences', user?.id],
@@ -238,7 +297,12 @@ const Profile = () => {
                         <User className="w-4 h-4" />
                         Full Name
                       </Label>
-                      <Input id="name" defaultValue={userProfile?.name || ''} className="mt-2" />
+                      <Input 
+                        id="name" 
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="mt-2" 
+                      />
                     </div>
 
                     <div>
@@ -246,7 +310,12 @@ const Profile = () => {
                         <User className="w-4 h-4" />
                         Username
                       </Label>
-                      <Input id="username" defaultValue={userProfile?.userName || ''} className="mt-2" />
+                      <Input 
+                        id="username" 
+                        value={formData.userName}
+                        onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+                        className="mt-2" 
+                      />
                     </div>
 
                     <div>
@@ -261,6 +330,8 @@ const Profile = () => {
                       <Label htmlFor="bio">Bio</Label>
                       <Textarea 
                         id="bio" 
+                        value={formData.bio}
+                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                         className="mt-2"
                         placeholder="Tell us about yourself..."
                         rows={4}
@@ -269,7 +340,13 @@ const Profile = () => {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Button variant="hero">Save Changes</Button>
+                    <Button 
+                      variant="hero" 
+                      onClick={handleSaveChanges}
+                      disabled={updateProfileMutation.isPending}
+                    >
+                      {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

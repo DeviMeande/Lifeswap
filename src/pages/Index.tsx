@@ -58,7 +58,7 @@ const Index = () => {
                 {/* <a href="/explore" target="_blank" rel="noopener noreferrer"> */}
                 <Link to="/explore">
                   <Button variant="hero" size="lg" className="group">
-                    Explore Experiencesss
+                    Explore Experiences
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   </Link>

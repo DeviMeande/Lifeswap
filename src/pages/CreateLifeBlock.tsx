@@ -27,14 +27,16 @@ const CreateLifeBlock = () => {
 
     try {
       const { error } = await (supabase as any)
-        .from("Lifeblock")
-        .insert([{
-          "Experience Title": formData.title,
-          "Category": formData.category,
-          "Duration": formData.duration,
-          "locationtype": formData.location,
+        .from("lifeBlock")
+        .insert({
+          "title": formData.title,
+          "category": formData.category,
+          "duration": formData.duration,
+          "locationType": formData.location,
           "description": formData.description,
-        }]);
+          "created_at":new Date(),
+          "createdBy":1
+        });
 
       if (error) throw error;
 
@@ -99,13 +101,13 @@ const CreateLifeBlock = () => {
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="creative">Creative</SelectItem>
-                        <SelectItem value="food">Food & Service</SelectItem>
-                        <SelectItem value="community">Community</SelectItem>
-                        <SelectItem value="technology">Technology</SelectItem>
-                        <SelectItem value="wellness">Health & Wellness</SelectItem>
-                        <SelectItem value="education">Education</SelectItem>
-                        <SelectItem value="urban">Urban Living</SelectItem>
+                        <SelectItem value="Creative">Creative</SelectItem>
+                        <SelectItem value="Food & Service">Food & Service</SelectItem>
+                        <SelectItem value="Community">Community</SelectItem>
+                        <SelectItem value="Technology">Technology</SelectItem>
+                        <SelectItem value="Health & Wellness">Health & Wellness</SelectItem>
+                        <SelectItem value="Education">Education</SelectItem>
+                        <SelectItem value="Urban Living">Urban Living</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -117,10 +119,10 @@ const CreateLifeBlock = () => {
                         <SelectValue placeholder="Select duration" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 hour</SelectItem>
-                        <SelectItem value="2">2 hours</SelectItem>
-                        <SelectItem value="3">3 hours</SelectItem>
-                        <SelectItem value="4">4 hours</SelectItem>
+                        <SelectItem value="1 Hour">1 Hour</SelectItem>
+                        <SelectItem value="2 Hours">2 Hours</SelectItem>
+                        <SelectItem value="3 Hours">3 Hours</SelectItem>
+                        <SelectItem value="4 Hours">4 Hours</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -133,9 +135,9 @@ const CreateLifeBlock = () => {
                       <SelectValue placeholder="Select location type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="virtual">Virtual</SelectItem>
-                      <SelectItem value="in-person">In-Person</SelectItem>
-                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                      <SelectItem value="Virtual">Virtual</SelectItem>
+                      <SelectItem value="In-Person">In-Person</SelectItem>
+                      <SelectItem value="Hybrid">Hybrid</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { goalSchema, taskSchema } from "@/lib/validationSchemas";
+import { z } from "zod";
 
 interface Task {
   title: string;
@@ -26,6 +28,8 @@ const LifeBlockSteps = () => {
   const [goals, setGoals] = useState<string[]>([""]);
   const [tasks, setTasks] = useState<Task[]>([{ title: "", description: "", duration: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [goalErrors, setGoalErrors] = useState<{ [key: number]: string }>({});
+  const [taskErrors, setTaskErrors] = useState<{ [key: number]: { [field: string]: string } }>({});
   const isEditMode = window.location.pathname.includes('/edit/');
 
   // Fetch existing goals and tasks if editing
@@ -107,11 +111,67 @@ const LifeBlockSteps = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGoalErrors({});
+    setTaskErrors({});
+
+    // Validate goals
+    const filteredGoals: string[] = [];
+    const newGoalErrors: { [key: number]: string } = {};
+    
+    goals.forEach((goal, index) => {
+      if (goal.trim() === "") return; // Skip empty goals
+      
+      try {
+        goalSchema.parse(goal);
+        filteredGoals.push(goal);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          newGoalErrors[index] = error.errors[0].message;
+        }
+      }
+    });
+
+    // Validate tasks
+    const validTasks: Task[] = [];
+    const newTaskErrors: { [key: number]: { [field: string]: string } } = {};
+    
+    tasks.forEach((task, index) => {
+      // Skip completely empty tasks
+      if (!task.title.trim() && !task.description.trim() && !task.duration.trim()) {
+        return;
+      }
+      
+      try {
+        taskSchema.parse(task);
+        validTasks.push(task);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const taskError: { [field: string]: string } = {};
+          error.errors.forEach((err) => {
+            if (err.path[0]) {
+              taskError[err.path[0] as string] = err.message;
+            }
+          });
+          newTaskErrors[index] = taskError;
+        }
+      }
+    });
+
+    // Show errors if any
+    if (Object.keys(newGoalErrors).length > 0 || Object.keys(newTaskErrors).length > 0) {
+      setGoalErrors(newGoalErrors);
+      setTaskErrors(newTaskErrors);
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Filter out empty goals
-      const filteredGoals = goals.filter(goal => goal.trim() !== "");
 
       // Update life block with goals
       const { error: goalsError } = await (supabase as any)
@@ -193,22 +253,25 @@ const LifeBlockSteps = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {goals.map((goal, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder={`Goal ${index + 1}`}
-                      value={goal}
-                      onChange={(e) => updateGoal(index, e.target.value)}
-                    />
-                    {goals.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => removeGoal(index)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
+                  <div key={index} className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={`Goal ${index + 1}`}
+                        value={goal}
+                        onChange={(e) => updateGoal(index, e.target.value)}
+                      />
+                      {goals.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeGoal(index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {goalErrors[index] && <p className="text-sm text-destructive">{goalErrors[index]}</p>}
                   </div>
                 ))}
                 <Button
@@ -257,6 +320,7 @@ const LifeBlockSteps = () => {
                         onChange={(e) => updateTask(index, "title", e.target.value)}
                         required={index === 0}
                       />
+                      {taskErrors[index]?.title && <p className="text-sm text-destructive">{taskErrors[index].title}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -268,6 +332,7 @@ const LifeBlockSteps = () => {
                         onChange={(e) => updateTask(index, "description", e.target.value)}
                         rows={3}
                       />
+                      {taskErrors[index]?.description && <p className="text-sm text-destructive">{taskErrors[index].description}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -288,6 +353,7 @@ const LifeBlockSteps = () => {
                           <SelectItem value="1 hour">1 hour</SelectItem>
                         </SelectContent>
                       </Select>
+                      {taskErrors[index]?.duration && <p className="text-sm text-destructive">{taskErrors[index].duration}</p>}
                     </div>
                   </div>
                 ))}

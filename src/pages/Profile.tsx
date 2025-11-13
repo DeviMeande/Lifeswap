@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { profileSchema } from "@/lib/validationSchemas";
+import { z } from "zod";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -27,6 +29,7 @@ const Profile = () => {
     userName: '',
     bio: ''
   });
+  const [formErrors, setFormErrors] = useState<{ name?: string; userName?: string }>({});
 
   // Redirect if not logged in
   useEffect(() => {
@@ -62,6 +65,35 @@ const Profile = () => {
       });
     }
   }, [userProfile]);
+
+  // Handle profile update with validation
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors({});
+
+    // Validate input
+    try {
+      profileSchema.parse({ name: formData.name, userName: formData.userName });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: { name?: string; userName?: string } = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            errors[err.path[0] as keyof typeof errors] = err.message;
+          }
+        });
+        setFormErrors(errors);
+        toast({
+          title: "Validation Error",
+          description: "Please fix the errors in the form.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    updateProfileMutation.mutate({ name: formData.name, userName: formData.userName });
+  };
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -413,6 +445,7 @@ const Profile = () => {
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         className="mt-2" 
                       />
+                      {formErrors.name && <p className="text-sm text-destructive mt-1">{formErrors.name}</p>}
                     </div>
 
                     <div>
@@ -426,6 +459,7 @@ const Profile = () => {
                         onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
                         className="mt-2" 
                       />
+                      {formErrors.userName && <p className="text-sm text-destructive mt-1">{formErrors.userName}</p>}
                     </div>
 
                     <div>

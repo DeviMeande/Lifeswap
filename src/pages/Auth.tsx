@@ -10,6 +10,8 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { loginSchema, signupSchema } from "@/lib/validationSchemas";
+import { z } from "zod";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -18,6 +20,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ email: "", password: "", userName: "", name: "" });
+  const [loginErrors, setLoginErrors] = useState<{ email?: string; password?: string }>({});
+  const [signupErrors, setSignupErrors] = useState<{ email?: string; password?: string; userName?: string; name?: string }>({});
 
   // Redirect if already logged in
   useEffect(() => {
@@ -29,6 +33,24 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginErrors({});
+    
+    // Validate input
+    try {
+      loginSchema.parse(loginData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: { email?: string; password?: string } = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            errors[err.path[0] as keyof typeof errors] = err.message;
+          }
+        });
+        setLoginErrors(errors);
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -59,6 +81,24 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignupErrors({});
+    
+    // Validate input
+    try {
+      signupSchema.parse(signupData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: { email?: string; password?: string; userName?: string; name?: string } = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            errors[err.path[0] as keyof typeof errors] = err.message;
+          }
+        });
+        setSignupErrors(errors);
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -130,6 +170,7 @@ const Auth = () => {
                         onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                         required
                       />
+                      {loginErrors.email && <p className="text-sm text-destructive">{loginErrors.email}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="login-password">Password</Label>
@@ -140,6 +181,7 @@ const Auth = () => {
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         required
                       />
+                      {loginErrors.password && <p className="text-sm text-destructive">{loginErrors.password}</p>}
                     </div>
                     <Button type="submit" className="w-full" disabled={loading}>
                       {loading ? "Logging in..." : "Login"}
@@ -166,6 +208,7 @@ const Auth = () => {
                         onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                         required
                       />
+                      {signupErrors.name && <p className="text-sm text-destructive">{signupErrors.name}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-username">Username</Label>
@@ -176,6 +219,7 @@ const Auth = () => {
                         onChange={(e) => setSignupData({ ...signupData, userName: e.target.value })}
                         required
                       />
+                      {signupErrors.userName && <p className="text-sm text-destructive">{signupErrors.userName}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-email">Email</Label>
@@ -187,6 +231,7 @@ const Auth = () => {
                         onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                         required
                       />
+                      {signupErrors.email && <p className="text-sm text-destructive">{signupErrors.email}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
@@ -198,6 +243,7 @@ const Auth = () => {
                         required
                         minLength={6}
                       />
+                      {signupErrors.password && <p className="text-sm text-destructive">{signupErrors.password}</p>}
                     </div>
                     <Button type="submit" className="w-full" disabled={loading}>
                       {loading ? "Creating account..." : "Sign Up"}

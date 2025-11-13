@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Mail, Calendar, CheckCircle2, Package, Edit } from "lucide-react";
+import { User, Mail, Calendar, CheckCircle2, Package, Edit, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -95,11 +95,45 @@ const Profile = () => {
     },
   });
 
+  // Complete experience mutation
+  const completeExperienceMutation = useMutation({
+    mutationFn: async (experienceId: number) => {
+      if (!user) throw new Error("No user");
+      
+      const { error } = await (supabase as any)
+        .from('userwiseExperiences')
+        .update({ status: 'Completed' })
+        .eq('id', experienceId)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userExperiences', user?.id] });
+      toast({
+        title: "Experience completed!",
+        description: "Great job completing this experience.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update experience. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Experience update error:", error);
+    },
+  });
+
   const handleSaveChanges = () => {
     updateProfileMutation.mutate({
       name: formData.name,
       userName: formData.userName
     });
+  };
+
+  const handleCompleteExperience = (experienceId: number) => {
+    completeExperienceMutation.mutate(experienceId);
   };
 
   const { data: userExperiences, isLoading: loadingExperiences } = useQuery({
@@ -151,7 +185,19 @@ const Profile = () => {
     );
   }
 
-  const completedExperiences = userExperiences?.map((exp: any) => ({
+  const completedExperiences = userExperiences?.filter((exp: any) => 
+    exp.status === "Completed"
+  ).map((exp: any) => ({
+    id: exp.id,
+    title: exp.lifeBlock?.title || "Unknown Experience",
+    status: exp.status,
+    category: exp.lifeBlock?.category || "Uncategorized",
+    startedDate: new Date(exp.created_at).toLocaleDateString(),
+  })) || [];
+
+  const inProgressExperiences = userExperiences?.filter((exp: any) => 
+    exp.status === "In-Progress"
+  ).map((exp: any) => ({
     id: exp.id,
     title: exp.lifeBlock?.title || "Unknown Experience",
     status: exp.status,
@@ -179,7 +225,11 @@ const Profile = () => {
                   <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                     <Badge variant="secondary">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
-                      {completedExperiences.length} Experiences
+                      {completedExperiences.length} Completed
+                    </Badge>
+                    <Badge variant="secondary">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {inProgressExperiences.length} In Progress
                     </Badge>
                     <Badge variant="secondary">
                       <Package className="w-3 h-3 mr-1" />
@@ -192,12 +242,65 @@ const Profile = () => {
           </Card>
 
           {/* Tabs for different sections */}
-          <Tabs defaultValue="completed" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="completed">Completed Experiences</TabsTrigger>
+          <Tabs defaultValue="in-progress" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+              <TabsTrigger value="completed">Completed</TabsTrigger>
               <TabsTrigger value="created">My Life Blocks</TabsTrigger>
-              <TabsTrigger value="settings">Account Settings</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
+
+            {/* In Progress Experiences Tab */}
+            <TabsContent value="in-progress" className="space-y-4">
+              {loadingExperiences ? (
+                <Card>
+                  <CardContent className="pt-6 text-center py-12">
+                    <p className="text-muted-foreground">Loading experiences...</p>
+                  </CardContent>
+                </Card>
+              ) : inProgressExperiences.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6 text-center py-12">
+                    <Clock className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No experiences in progress.</p>
+                    <Button variant="hero" className="mt-4" asChild>
+                      <Link to="/explore">Explore Experiences</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                inProgressExperiences.map((experience: any) => (
+                  <Card key={experience.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-semibold">{experience.title}</h3>
+                            <Badge variant="secondary">{experience.category}</Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span>Started on {experience.startedDate}</span>
+                          </div>
+                        </div>
+                        <Badge variant="default" className="ml-2">
+                          {experience.status}
+                        </Badge>
+                      </div>
+                      <Button 
+                        variant="hero" 
+                        size="sm"
+                        onClick={() => handleCompleteExperience(experience.id)}
+                        disabled={completeExperienceMutation.isPending}
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                        {completeExperienceMutation.isPending ? "Completing..." : "Mark as Complete"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
 
             {/* Completed Experiences Tab */}
             <TabsContent value="completed" className="space-y-4">
@@ -221,23 +324,20 @@ const Profile = () => {
                 completedExperiences.map((experience: any) => (
                   <Card key={experience.id}>
                     <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-xl font-semibold">{experience.title}</h3>
                             <Badge variant="secondary">{experience.category}</Badge>
-                          </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={experience.status === "In-Progress" ? "default" : "outline"}>
-                              {experience.status}
-                            </Badge>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4" />
                             <span>Started on {experience.startedDate}</span>
                           </div>
                         </div>
-                        <CheckCircle2 className="w-6 h-6 text-secondary" />
+                        <Badge variant="outline" className="ml-2">
+                          {experience.status}
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>

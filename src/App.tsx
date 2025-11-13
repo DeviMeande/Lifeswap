@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Explore from "./pages/Explore";
 import ExperienceDetail from "./pages/ExperienceDetail";
 import CreateLifeBlock from "./pages/CreateLifeBlock";
+import LifeBlockSteps from "./pages/LifeBlockSteps";
 import Badges from "./pages/Badges";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/explore" element={<Explore />} />
           <Route path="/experience/:id" element={<ExperienceDetail />} />
           <Route path="/create" element={<CreateLifeBlock />} />
+          <Route path="/create/steps/:id" element={<LifeBlockSteps />} />
           <Route path="/badges" element={<Badges />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

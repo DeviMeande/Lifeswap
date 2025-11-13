@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Mail, Calendar, CheckCircle2, Package } from "lucide-react";
+import { User, Mail, Calendar, CheckCircle2, Package, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -276,6 +276,16 @@ const Profile = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge>{block.category || "Uncategorized"}</Badge>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            asChild
+                          >
+                            <Link to={`/edit/${block.id}`}>
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </Link>
+                          </Button>
                         </div>
                       </div>
                     </CardContent>

@@ -5,47 +5,96 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin, User, CheckCircle2 } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const ExperienceDetail = () => {
   const { id } = useParams();
+  const [isStarting, setIsStarting] = useState(false);
 
-  // Mock data - in real app, would fetch based on id
-  const experience = {
-    title: "Morning as a Barista",
-    author: "Sarah Chen",
-    duration: "2 hours",
-    location: "Virtual",
-    category: "Food & Service",
-    description: "Experience the rush and rhythm of morning coffee service, from bean to cup. You'll learn the art of espresso making, customer interaction, and the behind-the-scenes flow of a busy café morning.",
-    learningOutcomes: [
-      "Understand the pace and pressure of service work",
-      "Learn basic barista techniques and coffee knowledge",
-      "Experience customer service from the other side",
-      "Appreciate the skill in seemingly simple tasks"
-    ],
-    tasks: [
-      {
-        title: "Setup & Preparation",
-        description: "Learn the morning routine: machine warm-up, stock check, and workspace organization",
-        duration: "20 min"
-      },
-      {
-        title: "Customer Service Simulation",
-        description: "Handle virtual orders and practice communication skills",
-        duration: "45 min"
-      },
-      {
-        title: "Coffee Making Tutorial",
-        description: "Follow along with espresso techniques and latte art basics",
-        duration: "35 min"
-      },
-      {
-        title: "Reflection",
-        description: "Journal about the experience and what surprised you",
-        duration: "20 min"
-      }
-    ]
+  const { data: lifeBlock, isLoading } = useQuery({
+    queryKey: ['lifeBlock', id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lifeBlock')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: tasks } = useQuery({
+    queryKey: ['lifeBlockTasks', id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lifeBlockTasks')
+        .select('*')
+        .eq('lifeBlockId', id);
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const handleStartExperience = async () => {
+    setIsStarting(true);
+    try {
+      const { error } = await (supabase as any)
+        .from('userwiseExperiences')
+        .insert({
+          user: 1,
+          lifeblock: id,
+          status: 'In-Progress'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Experience Started!",
+        description: "You can now track your progress in your profile.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start experience. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsStarting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-xl text-muted-foreground">Loading...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!lifeBlock) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-xl text-muted-foreground">Experience not found</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const goals = lifeBlock.goals || [];
+  const journeyTasks = tasks || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,11 +110,11 @@ const ExperienceDetail = () => {
             
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <Badge className="mb-3">{experience.category}</Badge>
-                <h1 className="text-4xl md:text-5xl font-bold mb-4">{experience.title}</h1>
+                <Badge className="mb-3">{lifeBlock.category || "Uncategorized"}</Badge>
+                <h1 className="text-4xl md:text-5xl font-bold mb-4">{lifeBlock.title}</h1>
                 <div className="flex items-center gap-2 text-muted-foreground mb-4">
                   <User className="w-4 h-4" />
-                  <span>Created by {experience.author}</span>
+                  <span>Created by LifeSwap User</span>
                 </div>
               </div>
             </div>
@@ -73,11 +122,11 @@ const ExperienceDetail = () => {
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" />
-                <span>{experience.duration}</span>
+                <span>{lifeBlock.duration || "Not specified"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
-                <span>{experience.location}</span>
+                <span>{lifeBlock.locationType || "Not specified"}</span>
               </div>
             </div>
           </div>
@@ -86,52 +135,62 @@ const ExperienceDetail = () => {
           <Card className="mb-8">
             <CardContent className="p-6">
               <h2 className="text-2xl font-semibold mb-4">About This Experience</h2>
-              <p className="text-foreground/80 leading-relaxed">{experience.description}</p>
+              <p className="text-foreground/80 leading-relaxed">{lifeBlock.description || "No description available"}</p>
             </CardContent>
           </Card>
 
           {/* Learning Outcomes */}
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-semibold mb-4">What You'll Gain</h2>
-              <ul className="space-y-3">
-                {experience.learningOutcomes.map((outcome, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" />
-                    <span>{outcome}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          {goals.length > 0 && (
+            <Card className="mb-8">
+              <CardContent className="p-6">
+                <h2 className="text-2xl font-semibold mb-4">What You'll Gain</h2>
+                <ul className="space-y-3">
+                  {goals.map((goal: string, index: number) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" />
+                      <span>{goal}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Journey Steps */}
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-semibold mb-6">Your Journey</h2>
-              <div className="space-y-4">
-                {experience.tasks.map((task, index) => (
-                  <div key={index} className="flex gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold flex-shrink-0">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold">{task.title}</h3>
-                        <span className="text-sm text-muted-foreground">{task.duration}</span>
+          {journeyTasks.length > 0 && (
+            <Card className="mb-8">
+              <CardContent className="p-6">
+                <h2 className="text-2xl font-semibold mb-6">Your Journey</h2>
+                <div className="space-y-4">
+                  {journeyTasks.map((task: any, index: number) => (
+                    <div key={task.id} className="flex gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold flex-shrink-0">
+                        {index + 1}
                       </div>
-                      <p className="text-sm text-muted-foreground">{task.description}</p>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold">{task.title}</h3>
+                          <span className="text-sm text-muted-foreground">{task.duration}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* CTA */}
           <div className="flex gap-4">
-            <Button variant="hero" size="lg" className="flex-1">
-              Start This Experience
+            <Button 
+              variant="hero" 
+              size="lg" 
+              className="flex-1"
+              onClick={handleStartExperience}
+              disabled={isStarting}
+            >
+              {isStarting ? "Starting..." : "Start This Experience"}
             </Button>
             <Link to="/explore" className="flex-1">
               <Button variant="outline" size="lg" className="w-full">

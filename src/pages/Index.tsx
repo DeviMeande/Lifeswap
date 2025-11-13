@@ -43,7 +43,7 @@ const Index = () => {
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-warm opacity-10" />
+        <div className="absolute inset-0 bg-gradient-warm opacity-10"  style={{ zIndex: -1 }}/>
         <div className="container mx-auto px-4 py-20 md:py-32">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
@@ -55,12 +55,14 @@ const Index = () => {
                 Swap life experiences with people from different walks of life. Build empathy, gain perspective, and discover new possibilities.
               </p>
               <div className="flex flex-wrap gap-4">
-                <a href="https://life-swap.com/explore" target="_blank" rel="noopener noreferrer">
+                {/* <a href="/explore" target="_blank" rel="noopener noreferrer"> */}
+                <Link to="/explore">
                   <Button variant="hero" size="lg" className="group">
-                    Explore Experiences
+                    Explore Experiencesss
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
-                </a>
+                  </Link>
+                {/* </a> */}
                 <Link to="/create">
                   <Button variant="outline" size="lg">
                     Share Your Life

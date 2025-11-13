@@ -5,37 +5,23 @@ import ExperienceCard from "@/components/ExperienceCard";
 import { ArrowRight, Heart, Lightbulb, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-lifeswap.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Index = () => {
-  const featuredExperiences = [
-    {
-      id: 1,
-      title: "Morning as a Barista",
-      author: "Sarah Chen",
-      duration: "2 hours",
-      location: "Virtual",
-      category: "Food & Service",
-      description: "Experience the rush and rhythm of morning coffee service, from bean to cup.",
+  const { data: featuredExperiences = [], isLoading } = useQuery({
+    queryKey: ['featuredExperiences'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lifeBlock')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (error) throw error;
+      return data || [];
     },
-    {
-      id: 2,
-      title: "Afternoon UX Design Sprint",
-      author: "Marcus Rodriguez",
-      duration: "3 hours",
-      location: "Hybrid",
-      category: "Creative",
-      description: "Dive into user research, wireframing, and design thinking processes.",
-    },
-    {
-      id: 3,
-      title: "Evening at Food Kitchen",
-      author: "Aisha Patel",
-      duration: "2 hours",
-      location: "In-Person",
-      category: "Community",
-      description: "Volunteer and connect with community members while serving meals.",
-    },
-  ];
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,9 +127,23 @@ const Index = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-6">
-            {featuredExperiences.map((experience) => (
-              <ExperienceCard key={experience.id} {...experience} />
-            ))}
+            {isLoading ? (
+              <p className="text-muted-foreground col-span-3 text-center">Loading experiences...</p>
+            ) : featuredExperiences.length === 0 ? (
+              <p className="text-muted-foreground col-span-3 text-center">No experiences available yet.</p>
+            ) : (
+              featuredExperiences.map((experience) => (
+                <ExperienceCard 
+                  key={experience.id} 
+                  id={experience.id}
+                  title={experience.title}
+                  duration={experience.duration}
+                  location={experience.locationType}
+                  category={experience.category}
+                  description={experience.description}
+                />
+              ))
+            )}
           </div>
         </div>
       </section>

@@ -8,11 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
 const CreateLifeBlock = () => {
+  const { id } = useParams();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -24,13 +26,44 @@ const CreateLifeBlock = () => {
     description: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditMode = !!id;
+
+  // Fetch existing life block data if editing
+  const { data: existingBlock, isLoading: loadingBlock } = useQuery({
+    queryKey: ['lifeBlock', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await (supabase as any)
+        .from('lifeBlock')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user,
+  });
+
+  // Load existing data into form
+  useEffect(() => {
+    if (existingBlock) {
+      setFormData({
+        title: existingBlock.title || "",
+        category: existingBlock.category || "",
+        duration: existingBlock.duration || "",
+        location: existingBlock.locationType || "",
+        description: existingBlock.description || "",
+      });
+    }
+  }, [existingBlock]);
 
   // Redirect if not logged in
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth?redirect=/create");
+      navigate(`/auth?redirect=${isEditMode ? `/edit/${id}` : '/create'}`);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, isEditMode, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,36 +76,59 @@ const CreateLifeBlock = () => {
           description: "Please log in to create a life block.",
           variant: "destructive",
         });
-        navigate("/auth?redirect=/create");
+        navigate(`/auth?redirect=${isEditMode ? `/edit/${id}` : '/create'}`);
         return;
       }
 
-      const { data, error } = await (supabase as any)
-        .from("lifeBlock")
-        .insert({
-          "title": formData.title,
-          "category": formData.category,
-          "duration": formData.duration,
-          "locationType": formData.location,
-          "description": formData.description,
-          "created_by": user.id
-        })
-        .select()
-        .single();
+      if (isEditMode) {
+        // Update existing life block
+        const { error } = await (supabase as any)
+          .from("lifeBlock")
+          .update({
+            "title": formData.title,
+            "category": formData.category,
+            "duration": formData.duration,
+            "locationType": formData.location,
+            "description": formData.description,
+          })
+          .eq("id", id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Life Block Created!",
-        description: "Now let's add goals and tasks to complete your experience.",
-      });
+        toast({
+          title: "Life Block Updated!",
+          description: "Now let's update goals and tasks.",
+        });
 
-      // Navigate to next steps page with the created life block ID
-      navigate(`/create/steps/${data.id}`);
+        navigate(`/edit/steps/${id}`);
+      } else {
+        // Create new life block
+        const { data, error } = await (supabase as any)
+          .from("lifeBlock")
+          .insert({
+            "title": formData.title,
+            "category": formData.category,
+            "duration": formData.duration,
+            "locationType": formData.location,
+            "description": formData.description,
+            "created_by": user.id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "Life Block Created!",
+          description: "Now let's add goals and tasks to complete your experience.",
+        });
+
+        navigate(`/create/steps/${data.id}`);
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create life block. Please try again.",
+        description: `Failed to ${isEditMode ? 'update' : 'create'} life block. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -80,7 +136,7 @@ const CreateLifeBlock = () => {
     }
   };
 
-  if (loading) {
+  if (loading || (isEditMode && loadingBlock)) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -100,10 +156,10 @@ const CreateLifeBlock = () => {
         <div className="max-w-3xl mx-auto">
           <div className="mb-12 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Create Your <span className="bg-gradient-warm bg-clip-text text-transparent">Life Block</span>
+              {isEditMode ? 'Edit Your' : 'Create Your'} <span className="bg-gradient-warm bg-clip-text text-transparent">Life Block</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Share a snapshot of your routine or passion with the world
+              {isEditMode ? 'Update your life block details' : 'Share a snapshot of your routine or passion with the world'}
             </p>
           </div>
 
@@ -124,7 +180,10 @@ const CreateLifeBlock = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="category">Category *</Label>
-                    <Select onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <Select 
+                      value={formData.category}
+                      onValueChange={(value) => setFormData({ ...formData, category: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
@@ -142,7 +201,10 @@ const CreateLifeBlock = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="duration">Duration *</Label>
-                    <Select onValueChange={(value) => setFormData({ ...formData, duration: value })}>
+                    <Select 
+                      value={formData.duration}
+                      onValueChange={(value) => setFormData({ ...formData, duration: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select duration" />
                       </SelectTrigger>
@@ -158,7 +220,10 @@ const CreateLifeBlock = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="location">Location Type *</Label>
-                  <Select onValueChange={(value) => setFormData({ ...formData, location: value })}>
+                  <Select 
+                    value={formData.location}
+                    onValueChange={(value) => setFormData({ ...formData, location: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select location type" />
                     </SelectTrigger>
@@ -191,7 +256,7 @@ const CreateLifeBlock = () => {
 
                 <div className="flex gap-4">
                   <Button type="submit" variant="hero" className="flex-1" disabled={isSubmitting}>
-                    {isSubmitting ? "Creating..." : "Create Life Block"}
+                    {isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Life Block" : "Create Life Block")}
                   </Button>
                   <Button type="button" variant="outline" className="flex-1" disabled={isSubmitting}>
                     Save as Draft

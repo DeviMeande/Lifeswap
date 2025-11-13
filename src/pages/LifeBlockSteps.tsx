@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface Task {
   title: string;
@@ -25,6 +26,56 @@ const LifeBlockSteps = () => {
   const [goals, setGoals] = useState<string[]>([""]);
   const [tasks, setTasks] = useState<Task[]>([{ title: "", description: "", duration: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditMode = window.location.pathname.includes('/edit/');
+
+  // Fetch existing goals and tasks if editing
+  const { data: existingBlock } = useQuery({
+    queryKey: ['lifeBlock', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await (supabase as any)
+        .from('lifeBlock')
+        .select('goals')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && isEditMode,
+  });
+
+  const { data: existingTasks } = useQuery({
+    queryKey: ['lifeBlockTasks', id],
+    queryFn: async () => {
+      if (!id) return [];
+      const { data, error } = await (supabase as any)
+        .from('lifeBlockTasks')
+        .select('*')
+        .eq('lifeBlockId', id);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id && isEditMode,
+  });
+
+  // Load existing data
+  useEffect(() => {
+    if (existingBlock?.goals && existingBlock.goals.length > 0) {
+      setGoals(existingBlock.goals);
+    }
+  }, [existingBlock]);
+
+  useEffect(() => {
+    if (existingTasks && existingTasks.length > 0) {
+      setTasks(existingTasks.map((task: any) => ({
+        title: task.title || "",
+        description: task.description || "",
+        duration: task.duration || "",
+      })));
+    }
+  }, [existingTasks]);
 
   const addGoal = () => {
     setGoals([...goals, ""]);
@@ -70,6 +121,16 @@ const LifeBlockSteps = () => {
 
       if (goalsError) throw goalsError;
 
+      // If editing, delete existing tasks first
+      if (isEditMode) {
+        const { error: deleteError } = await (supabase as any)
+          .from("lifeBlockTasks")
+          .delete()
+          .eq("lifeBlockId", id);
+
+        if (deleteError) throw deleteError;
+      }
+
       // Filter out empty tasks and insert into lifeBlockTasks
       const validTasks = tasks.filter(task => task.title.trim() !== "");
       
@@ -90,11 +151,11 @@ const LifeBlockSteps = () => {
       }
 
       toast({
-        title: "Life Block Completed!",
+        title: isEditMode ? "Life Block Updated!" : "Life Block Completed!",
         description: "Your goals and tasks have been saved successfully.",
       });
 
-      navigate("/explore");
+      navigate(isEditMode ? "/profile" : "/explore");
     } catch (error) {
       toast({
         title: "Error",
@@ -114,10 +175,10 @@ const LifeBlockSteps = () => {
         <div className="max-w-4xl mx-auto">
           <div className="mb-12 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Complete Your <span className="bg-gradient-warm bg-clip-text text-transparent">Life Block</span>
+              {isEditMode ? 'Edit Your' : 'Complete Your'} <span className="bg-gradient-warm bg-clip-text text-transparent">Life Block</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Add goals and tasks to make your experience actionable
+              {isEditMode ? 'Update goals and tasks for your experience' : 'Add goals and tasks to make your experience actionable'}
             </p>
           </div>
 
@@ -250,13 +311,13 @@ const LifeBlockSteps = () => {
                 className="flex-1" 
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Saving..." : "Complete Life Block"}
+                {isSubmitting ? "Saving..." : (isEditMode ? "Update Life Block" : "Complete Life Block")}
               </Button>
               <Button 
                 type="button" 
                 variant="outline" 
                 className="flex-1" 
-                onClick={() => navigate("/explore")}
+                onClick={() => navigate(isEditMode ? "/profile" : "/explore")}
                 disabled={isSubmitting}
               >
                 Skip for Now

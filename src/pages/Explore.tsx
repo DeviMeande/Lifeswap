@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Explore = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -15,62 +17,28 @@ const Explore = () => {
     "Health & Wellness", "Education", "Urban Living"
   ];
 
-  const experiences = [
-    {
-      id: 1,
-      title: "Morning as a Barista",
-      author: "Sarah Chen",
-      duration: "2 hours",
-      location: "Virtual",
-      category: "Food & Service",
-      description: "Experience the rush and rhythm of morning coffee service, from bean to cup.",
+  const { data: lifeBlocks, isLoading } = useQuery({
+    queryKey: ['lifeBlocks'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lifeBlock')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
     },
-    {
-      id: 2,
-      title: "Afternoon UX Design Sprint",
-      author: "Marcus Rodriguez",
-      duration: "3 hours",
-      location: "Hybrid",
-      category: "Creative",
-      description: "Dive into user research, wireframing, and design thinking processes.",
-    },
-    {
-      id: 3,
-      title: "Evening at Food Kitchen",
-      author: "Aisha Patel",
-      duration: "2 hours",
-      location: "In-Person",
-      category: "Community",
-      description: "Volunteer and connect with community members while serving meals.",
-    },
-    {
-      id: 4,
-      title: "Day in Software Engineering",
-      author: "James Liu",
-      duration: "4 hours",
-      location: "Virtual",
-      category: "Technology",
-      description: "From standup to deployment, experience the lifecycle of code.",
-    },
-    {
-      id: 5,
-      title: "Yoga Teacher's Morning",
-      author: "Priya Sharma",
-      duration: "2.5 hours",
-      location: "Hybrid",
-      category: "Health & Wellness",
-      description: "Learn the preparation, practice, and mindfulness behind teaching yoga.",
-    },
-    {
-      id: 6,
-      title: "Elementary School Teacher's Day",
-      author: "Tom Anderson",
-      duration: "3 hours",
-      location: "Virtual",
-      category: "Education",
-      description: "Experience lesson planning, classroom management, and student engagement.",
-    },
-  ];
+  });
+
+  const experiences = lifeBlocks?.map((block: any) => ({
+    id: block.id,
+    title: block.title || "Untitled Experience",
+    author: "LifeSwap User",
+    duration: block.duration || "Not specified",
+    location: block.locationType || "Not specified",
+    category: block.category || "Uncategorized",
+    description: block.description || "No description available",
+  })) || [];
 
   const filteredExperiences = selectedCategory && selectedCategory !== "All"
     ? experiences.filter(exp => exp.category === selectedCategory)
@@ -116,19 +84,31 @@ const Explore = () => {
         </div>
 
         {/* Experience Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredExperiences.map((experience) => (
-            <ExperienceCard key={experience.id} {...experience} />
-          ))}
-        </div>
-
-        {filteredExperiences.length === 0 && (
+        {isLoading ? (
           <div className="text-center py-20">
-            <p className="text-xl text-muted-foreground">No experiences found in this category</p>
-            <Button variant="link" onClick={() => setSelectedCategory(null)} className="mt-4">
-              Clear filters
-            </Button>
+            <p className="text-xl text-muted-foreground">Loading experiences...</p>
           </div>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredExperiences.map((experience) => (
+                <ExperienceCard key={experience.id} {...experience} />
+              ))}
+            </div>
+
+            {filteredExperiences.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-xl text-muted-foreground">
+                  {selectedCategory ? "No experiences found in this category" : "No experiences available yet"}
+                </p>
+                {selectedCategory && (
+                  <Button variant="link" onClick={() => setSelectedCategory(null)} className="mt-4">
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 

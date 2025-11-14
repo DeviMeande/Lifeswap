@@ -29,6 +29,8 @@ const CreateLifeBlock = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const isEditMode = !!id;
 
   // Fetch existing life block data if editing
@@ -58,6 +60,9 @@ const CreateLifeBlock = () => {
         location: existingBlock.locationType || "",
         description: existingBlock.description || "",
       });
+      if (existingBlock.image_url) {
+        setImagePreview(existingBlock.image_url);
+      }
     }
   }, [existingBlock]);
 
@@ -67,6 +72,18 @@ const CreateLifeBlock = () => {
       navigate(`/auth?redirect=${isEditMode ? `/edit/${id}` : '/create'}`);
     }
   }, [user, loading, navigate, isEditMode, id]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +123,26 @@ const CreateLifeBlock = () => {
         return;
       }
 
+      let imageUrl = existingBlock?.image_url || null;
+
+      // Upload image if a new one is selected
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('lifeBlockImages')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('lifeBlockImages')
+          .getPublicUrl(fileName);
+
+        imageUrl = urlData.publicUrl;
+      }
+
       if (isEditMode) {
         // Update existing life block
         const { error } = await (supabase as any)
@@ -116,6 +153,7 @@ const CreateLifeBlock = () => {
             "duration": formData.duration,
             "locationType": formData.location,
             "description": formData.description,
+            "image_url": imageUrl,
           })
           .eq("id", id);
 
@@ -137,7 +175,8 @@ const CreateLifeBlock = () => {
             "duration": formData.duration,
             "locationType": formData.location,
             "description": formData.description,
-            "created_by": user.id
+            "created_by": user.id,
+            "image_url": imageUrl,
           })
           .select()
           .single();
@@ -276,6 +315,25 @@ const CreateLifeBlock = () => {
                     required
                   />
                   {formErrors.description && <p className="text-sm text-destructive">{formErrors.description}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="image">Experience Image</Label>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                  {imagePreview && (
+                    <div className="mt-4">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-muted/30 p-6 rounded-lg">

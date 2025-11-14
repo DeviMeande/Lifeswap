@@ -122,6 +122,13 @@ const ExperienceDetail = () => {
           {/* Hero Section */}
           <div className="mb-8">
             <div className="h-64 bg-gradient-warm rounded-3xl mb-6 relative overflow-hidden">
+              {lifeBlock.image_url ? (
+                <img 
+                  src={lifeBlock.image_url} 
+                  alt={lifeBlock.title} 
+                  className="w-full h-full object-cover"
+                />
+              ) : null}
               <div className="absolute inset-0 bg-black/20" />
             </div>
             

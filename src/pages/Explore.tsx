@@ -43,6 +43,7 @@ const Explore = () => {
     location: block.locationType || "Not specified",
     category: block.category || "Uncategorized",
     description: block.description || "No description available",
+    image: block.image_url,
   })) || [];
 
   const filteredExperiences = selectedCategory && selectedCategory !== "All"

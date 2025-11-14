@@ -15,12 +15,15 @@ interface ExperienceCardProps {
   image?: string;
 }
 
-const ExperienceCard = ({ id, title, author, creatorName, duration, location, category, description }: ExperienceCardProps) => {
+const ExperienceCard = ({ id, title, author, creatorName, duration, location, category, description, image }: ExperienceCardProps) => {
   const displayName = creatorName || author || "LifeSwap User";
   return (
     <Link to={`/experience/${id}`}>
       <Card className="overflow-hidden hover:shadow-elevated transition-all duration-300 h-full group cursor-pointer">
         <div className="h-48 bg-gradient-warm relative overflow-hidden">
+          {image ? (
+            <img src={image} alt={title} className="w-full h-full object-cover" />
+          ) : null}
           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
           <div className="absolute bottom-4 left-4 right-4">
             <Badge className="bg-background/90 text-foreground border-0 mb-2">{category}</Badge>

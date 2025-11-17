@@ -258,6 +258,48 @@ const Profile = () => {
   // Calculate total signups across all created life blocks
   const totalSignups = createdBlocks?.reduce((sum, block) => sum + (block.signupCount || 0), 0) || 0;
 
+  // Set up real-time subscription for signup updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('signup-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'userwiseExperiences'
+        },
+        async (payload) => {
+          console.log('New signup detected:', payload);
+          
+          // Check if this signup is for one of the user's life blocks
+          const { data: lifeBlock } = await (supabase as any)
+            .from('lifeBlock')
+            .select('title')
+            .eq('id', payload.new.lifeblock)
+            .eq('created_by', user.id)
+            .single();
+
+          if (lifeBlock) {
+            // Invalidate queries to refresh signup counts
+            queryClient.invalidateQueries({ queryKey: ['createdBlocks', user.id] });
+            
+            toast({
+              title: "New Signup! 🎉",
+              description: `Someone just joined "${lifeBlock.title}"`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient, toast]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />

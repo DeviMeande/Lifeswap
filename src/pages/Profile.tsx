@@ -255,6 +255,9 @@ const Profile = () => {
     startedDate: new Date(exp.created_at).toLocaleDateString(),
   })) || [];
 
+  // Calculate total signups across all created life blocks
+  const totalSignups = createdBlocks?.reduce((sum, block) => sum + (block.signupCount || 0), 0) || 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -284,6 +287,10 @@ const Profile = () => {
                     <Badge variant="secondary">
                       <Package className="w-3 h-3 mr-1" />
                       {createdBlocks?.length || 0} Life Blocks
+                    </Badge>
+                    <Badge variant="secondary">
+                      <User className="w-3 h-3 mr-1" />
+                      {totalSignups} Total Signups
                     </Badge>
                   </div>
                 </div>

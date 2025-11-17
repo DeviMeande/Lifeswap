@@ -147,6 +147,7 @@ const Index = () => {
                   category={experience.category}
                   description={experience.description}
                   creatorName={experience.creator?.name}
+                  image={experience.image_url}
                 />
               ))
             )}

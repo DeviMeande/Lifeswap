@@ -194,13 +194,31 @@ const Profile = () => {
     queryKey: ['createdBlocks', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await (supabase as any)
+      
+      // Fetch life blocks created by the user
+      const { data: blocks, error } = await (supabase as any)
         .from('lifeBlock')
         .select('*')
         .eq('created_by', user.id);
       
       if (error) throw error;
-      return data || [];
+      
+      // For each block, fetch the count of signups
+      const blocksWithSignupCount = await Promise.all(
+        (blocks || []).map(async (block: any) => {
+          const { count } = await (supabase as any)
+            .from('userwiseExperiences')
+            .select('*', { count: 'exact', head: true })
+            .eq('lifeblock', block.id);
+          
+          return {
+            ...block,
+            signupCount: count || 0
+          };
+        })
+      );
+      
+      return blocksWithSignupCount;
     },
     enabled: !!user,
   });
@@ -405,6 +423,12 @@ const Profile = () => {
                           <p className="text-muted-foreground text-sm mb-2">
                             {block.duration || "Not specified"}
                           </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              {block.signupCount} {block.signupCount === 1 ? 'signup' : 'signups'}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge>{block.category || "Uncategorized"}</Badge>

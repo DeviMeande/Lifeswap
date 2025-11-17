@@ -18,33 +18,36 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
-          created_by: string | null
+          created_by: string
           description: string | null
           duration: string | null
           goals: string[] | null
           id: number
+          image_url: string | null
           locationType: string | null
           title: string | null
         }
         Insert: {
           category?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           duration?: string | null
           goals?: string[] | null
           id?: number
+          image_url?: string | null
           locationType?: string | null
           title?: string | null
         }
         Update: {
           category?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           duration?: string | null
           goals?: string[] | null
           id?: number
+          image_url?: string | null
           locationType?: string | null
           title?: string | null
         }
@@ -153,21 +156,21 @@ export type Database = {
           id: number
           lifeblock: number | null
           status: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
           id?: number
           lifeblock?: number | null
           status?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Update: {
           created_at?: string
           id?: number
           lifeblock?: number | null
           status?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {

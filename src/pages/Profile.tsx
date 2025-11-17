@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Mail, Calendar, CheckCircle2, Package, Edit, Clock } from "lucide-react";
+import { User, Mail, Calendar, CheckCircle2, Package, Edit, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -275,7 +275,7 @@ const Profile = () => {
                 <div className="flex-1 text-center md:text-left">
                   <h1 className="text-3xl font-bold text-foreground mb-2">{userProfile?.name || userProfile?.userName || 'User'}</h1>
                   <p className="text-muted-foreground mb-4">{user?.email}</p>
-                  <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                  <div className="flex flex-wrap gap-2 justify-center md:justify-start items-center">
                     <Badge variant="secondary">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
                       {completedExperiences.length} Completed
@@ -292,6 +292,20 @@ const Profile = () => {
                       <User className="w-3 h-3 mr-1" />
                       {totalSignups} Total Signups
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        queryClient.invalidateQueries({ queryKey: ['createdBlocks', user?.id] });
+                        toast({
+                          title: "Refreshed",
+                          description: "Signup counts updated.",
+                        });
+                      }}
+                      className="h-6 w-6 p-0"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               </div>

@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { profileSchema } from "@/lib/validationSchemas";
 import { z } from "zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -30,6 +31,8 @@ const Profile = () => {
     bio: ''
   });
   const [formErrors, setFormErrors] = useState<{ name?: string; userName?: string }>({});
+  const [signupDialogOpen, setSignupDialogOpen] = useState(false);
+  const [selectedLifeBlockId, setSelectedLifeBlockId] = useState<number | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -300,6 +303,54 @@ const Profile = () => {
   // Calculate total signups across all created life blocks
   const totalSignups = createdBlocks?.reduce((sum, block) => sum + (block.signupCount || 0), 0) || 0;
 
+  // Fetch signup details for dialog
+  const { data: signupDetails } = useQuery({
+    queryKey: ['signupDetails', selectedLifeBlockId],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      let query = (supabase as any)
+        .from('userwiseExperiences')
+        .select(`
+          id,
+          created_at,
+          status,
+          lifeblock,
+          user:user_id (
+            name,
+            userName,
+            email
+          ),
+          lifeBlock:lifeblock (
+            title
+          )
+        `);
+      
+      if (selectedLifeBlockId) {
+        query = query.eq('lifeblock', selectedLifeBlockId);
+      } else {
+        // For total signups, only show signups for user's created blocks
+        const blockIds = createdBlocks?.map(block => block.id) || [];
+        if (blockIds.length > 0) {
+          query = query.in('lifeblock', blockIds);
+        } else {
+          return [];
+        }
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: signupDialogOpen && !!user,
+  });
+
+  const handleShowSignups = (lifeBlockId: number | null) => {
+    setSelectedLifeBlockId(lifeBlockId);
+    setSignupDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -330,7 +381,11 @@ const Profile = () => {
                       <Package className="w-3 h-3 mr-1" />
                       {createdBlocks?.length || 0} Life Blocks
                     </Badge>
-                    <Badge variant="secondary">
+                    <Badge 
+                      variant="secondary" 
+                      className="cursor-pointer hover:bg-secondary/80 transition-colors"
+                      onClick={() => handleShowSignups(null)}
+                    >
                       <User className="w-3 h-3 mr-1" />
                       {totalSignups} Total Signups
                     </Badge>
@@ -486,9 +541,12 @@ const Profile = () => {
                           <p className="text-muted-foreground text-sm mb-2">
                             {block.duration || "Not specified"}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div 
+                            className="flex items-center gap-2 mt-2 cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => handleShowSignups(block.id)}
+                          >
                             <User className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-muted-foreground hover:text-primary">
                               {block.signupCount} {block.signupCount === 1 ? 'signup' : 'signups'}
                             </span>
                           </div>
@@ -587,6 +645,69 @@ const Profile = () => {
       </div>
 
       <Footer />
+
+      {/* Signup Details Dialog */}
+      <Dialog open={signupDialogOpen} onOpenChange={setSignupDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedLifeBlockId 
+                ? signupDetails?.[0]?.lifeBlock?.title 
+                : 'All Signups'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {signupDetails && signupDetails.length > 0 ? (
+              signupDetails.map((signup: any) => (
+                <Card key={signup.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <Avatar>
+                          <AvatarImage 
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${signup.user?.userName || signup.user?.email}`} 
+                            alt="User" 
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {signup.user?.name?.charAt(0)?.toUpperCase() || 
+                             signup.user?.userName?.charAt(0)?.toUpperCase() || 
+                             'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold text-foreground">
+                            {signup.user?.name || signup.user?.userName || 'Unknown User'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {signup.user?.email}
+                          </p>
+                          {!selectedLifeBlockId && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Life Block: {signup.lifeBlock?.title}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>Joined {new Date(signup.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant={signup.status === 'Completed' ? 'default' : 'secondary'}>
+                        {signup.status}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <User className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No signups yet</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -298,7 +298,7 @@ const Profile = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient, toast]);
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-background">

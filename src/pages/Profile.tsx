@@ -268,42 +268,7 @@ const Profile = () => {
     };
   }, [user?.id]);
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="container mx-auto px-4 py-12 text-center">
-          <p className="text-xl text-muted-foreground">Loading...</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  const completedExperiences = userExperiences?.filter((exp: any) => 
-    exp.status === "Completed"
-  ).map((exp: any) => ({
-    id: exp.id,
-    title: exp.lifeBlock?.title || "Unknown Experience",
-    status: exp.status,
-    category: exp.lifeBlock?.category || "Uncategorized",
-    startedDate: new Date(exp.created_at).toLocaleDateString(),
-  })) || [];
-
-  const inProgressExperiences = userExperiences?.filter((exp: any) => 
-    exp.status === "In-Progress"
-  ).map((exp: any) => ({
-    id: exp.id,
-    title: exp.lifeBlock?.title || "Unknown Experience",
-    status: exp.status,
-    category: exp.lifeBlock?.category || "Uncategorized",
-    startedDate: new Date(exp.created_at).toLocaleDateString(),
-  })) || [];
-
-  // Calculate total signups across all created life blocks
-  const totalSignups = createdBlocks?.reduce((sum, block) => sum + (block.signupCount || 0), 0) || 0;
-
-  // Fetch signup details for dialog
+  // Fetch signup details for dialog - MUST be before early return
   const { data: signupDetails } = useQuery({
     queryKey: ['signupDetails', selectedLifeBlockId],
     queryFn: async () => {
@@ -350,6 +315,41 @@ const Profile = () => {
     setSelectedLifeBlockId(lifeBlockId);
     setSignupDialogOpen(true);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-12 text-center">
+          <p className="text-xl text-muted-foreground">Loading...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const completedExperiences = userExperiences?.filter((exp: any) => 
+    exp.status === "Completed"
+  ).map((exp: any) => ({
+    id: exp.id,
+    title: exp.lifeBlock?.title || "Unknown Experience",
+    status: exp.status,
+    category: exp.lifeBlock?.category || "Uncategorized",
+    startedDate: new Date(exp.created_at).toLocaleDateString(),
+  })) || [];
+
+  const inProgressExperiences = userExperiences?.filter((exp: any) => 
+    exp.status === "In-Progress"
+  ).map((exp: any) => ({
+    id: exp.id,
+    title: exp.lifeBlock?.title || "Unknown Experience",
+    status: exp.status,
+    category: exp.lifeBlock?.category || "Uncategorized",
+    startedDate: new Date(exp.created_at).toLocaleDateString(),
+  })) || [];
+
+  // Calculate total signups across all created life blocks
+  const totalSignups = createdBlocks?.reduce((sum, block) => sum + (block.signupCount || 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-background">

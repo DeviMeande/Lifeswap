@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Mail, Calendar, CheckCircle2, Package, Edit, Clock } from "lucide-react";
+import { User, Mail, Calendar, CheckCircle2, Package, Edit, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -194,16 +194,76 @@ const Profile = () => {
     queryKey: ['createdBlocks', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await (supabase as any)
+      
+      // Fetch life blocks created by the user
+      const { data: blocks, error } = await (supabase as any)
         .from('lifeBlock')
         .select('*')
         .eq('created_by', user.id);
       
       if (error) throw error;
-      return data || [];
+      
+      // For each block, fetch the count of signups
+      const blocksWithSignupCount = await Promise.all(
+        (blocks || []).map(async (block: any) => {
+          const { count } = await (supabase as any)
+            .from('userwiseExperiences')
+            .select('*', { count: 'exact', head: true })
+            .eq('lifeblock', block.id);
+          
+          return {
+            ...block,
+            signupCount: count || 0
+          };
+        })
+      );
+      
+      return blocksWithSignupCount;
     },
     enabled: !!user,
   });
+
+  // Set up real-time subscription for signup updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('signup-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'userwiseExperiences'
+        },
+        async (payload) => {
+          console.log('New signup detected:', payload);
+          
+          // Check if this signup is for one of the user's life blocks
+          const { data: lifeBlock } = await (supabase as any)
+            .from('lifeBlock')
+            .select('title')
+            .eq('id', payload.new.lifeblock)
+            .eq('created_by', user.id)
+            .single();
+
+          if (lifeBlock) {
+            // Invalidate queries to refresh signup counts
+            queryClient.invalidateQueries({ queryKey: ['createdBlocks', user.id] });
+            
+            toast({
+              title: "New Signup! 🎉",
+              description: `Someone just joined "${lifeBlock.title}"`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   if (authLoading) {
     return (
@@ -237,6 +297,9 @@ const Profile = () => {
     startedDate: new Date(exp.created_at).toLocaleDateString(),
   })) || [];
 
+  // Calculate total signups across all created life blocks
+  const totalSignups = createdBlocks?.reduce((sum, block) => sum + (block.signupCount || 0), 0) || 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -254,7 +317,7 @@ const Profile = () => {
                 <div className="flex-1 text-center md:text-left">
                   <h1 className="text-3xl font-bold text-foreground mb-2">{userProfile?.name || userProfile?.userName || 'User'}</h1>
                   <p className="text-muted-foreground mb-4">{user?.email}</p>
-                  <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                  <div className="flex flex-wrap gap-2 justify-center md:justify-start items-center">
                     <Badge variant="secondary">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
                       {completedExperiences.length} Completed
@@ -267,6 +330,24 @@ const Profile = () => {
                       <Package className="w-3 h-3 mr-1" />
                       {createdBlocks?.length || 0} Life Blocks
                     </Badge>
+                    <Badge variant="secondary">
+                      <User className="w-3 h-3 mr-1" />
+                      {totalSignups} Total Signups
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        queryClient.invalidateQueries({ queryKey: ['createdBlocks', user?.id] });
+                        toast({
+                          title: "Refreshed",
+                          description: "Signup counts updated.",
+                        });
+                      }}
+                      className="h-6 w-6 p-0"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -405,6 +486,12 @@ const Profile = () => {
                           <p className="text-muted-foreground text-sm mb-2">
                             {block.duration || "Not specified"}
                           </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              {block.signupCount} {block.signupCount === 1 ? 'signup' : 'signups'}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge>{block.category || "Uncategorized"}</Badge>

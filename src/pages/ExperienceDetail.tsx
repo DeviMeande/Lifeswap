@@ -50,9 +50,39 @@ const ExperienceDetail = () => {
     },
   });
 
+  // Check if user already has an in-progress experience for this life block
+  const { data: existingExperience } = useQuery({
+    queryKey: ['userExistingExperience', user?.id, id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await (supabase as any)
+        .from('userwiseExperiences')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .eq('lifeblock', id)
+        .eq('status', 'In-Progress')
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!id,
+  });
+
   const handleStartExperience = async () => {
     if (!user) {
       navigate(`/auth?redirect=/experience/${id}`);
+      return;
+    }
+
+    // Check if user already has an in-progress experience
+    if (existingExperience) {
+      toast({
+        title: "Already Started",
+        description: "You already have this experience in progress. Complete it before starting again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -206,21 +236,36 @@ const ExperienceDetail = () => {
           )}
 
           {/* CTA */}
-          <div className="flex gap-4">
-            <Button 
-              variant="hero" 
-              size="lg" 
-              className="flex-1"
-              onClick={handleStartExperience}
-              disabled={isStarting}
-            >
-              {isStarting ? "Starting..." : "Start This Experience"}
-            </Button>
-            <Link to="/explore" className="flex-1">
-              <Button variant="outline" size="lg" className="w-full">
-                Browse More
+          <div className="space-y-3">
+            <div className="flex gap-4">
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="flex-1"
+                onClick={handleStartExperience}
+                disabled={isStarting || !!existingExperience}
+              >
+                {existingExperience 
+                  ? "Already In Progress" 
+                  : isStarting 
+                    ? "Starting..." 
+                    : "Start This Experience"}
               </Button>
-            </Link>
+              <Link to="/explore" className="flex-1">
+                <Button variant="outline" size="lg" className="w-full">
+                  Browse More
+                </Button>
+              </Link>
+            </div>
+            {existingExperience && (
+              <p className="text-sm text-muted-foreground text-center">
+                You already have this experience in progress. Complete it in your{" "}
+                <Link to="/profile" className="text-primary hover:underline">
+                  profile
+                </Link>{" "}
+                before starting again.
+              </p>
+            )}
           </div>
         </div>
       </div>

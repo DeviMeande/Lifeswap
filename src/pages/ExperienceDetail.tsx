@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, User, CheckCircle2, Share2 } from "lucide-react";
+import { Clock, MapPin, User, CheckCircle2, Share2, Instagram } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -11,12 +11,14 @@ import { toast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { ShareCardModal } from "@/components/ShareCardModal";
 
 const ExperienceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isStarting, setIsStarting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const { data: lifeBlock, isLoading } = useQuery({
     queryKey: ['lifeBlock', id],
@@ -211,15 +213,26 @@ const ExperienceDetail = () => {
                   <span>Created by {lifeBlock.creator?.name || 'Anonymous'}</span>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShare}
-                className="flex-shrink-0"
-                title="Share to Instagram"
-              >
-                <Share2 className="w-5 h-5" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShare}
+                  className="flex-shrink-0"
+                  title="Share link"
+                >
+                  <Share2 className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowShareModal(true)}
+                  className="flex-shrink-0"
+                  title="Create Instagram Story"
+                >
+                  <Instagram className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-4 text-sm">
@@ -318,6 +331,19 @@ const ExperienceDetail = () => {
           </div>
         </div>
       </div>
+
+      <ShareCardModal
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        experience={{
+          title: lifeBlock.title || "",
+          category: lifeBlock.category || "Uncategorized",
+          duration: lifeBlock.duration || "Not specified",
+          locationType: lifeBlock.locationType || "Not specified",
+          description: lifeBlock.description || "No description available",
+          image_url: lifeBlock.image_url,
+        }}
+      />
 
       <Footer />
     </div>

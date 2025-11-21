@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, User, CheckCircle2 } from "lucide-react";
+import { Clock, MapPin, User, CheckCircle2, Share2 } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -69,6 +69,46 @@ const ExperienceDetail = () => {
     },
     enabled: !!user && !!id,
   });
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `Check out this amazing experience: ${lifeBlock?.title}`;
+
+    // Try to use Web Share API (works great on mobile with Instagram)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: lifeBlock?.title || 'Life Experience',
+          text: shareText,
+          url: shareUrl,
+        });
+        toast({
+          title: "Shared!",
+          description: "Thanks for sharing this experience.",
+        });
+      } catch (error) {
+        // User cancelled or error occurred
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing:', error);
+        }
+      }
+    } else {
+      // Fallback: copy link to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link Copied!",
+          description: "Share this link on Instagram or anywhere else.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Could not copy link. Please copy manually.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const handleStartExperience = async () => {
     if (!user) {
@@ -171,6 +211,15 @@ const ExperienceDetail = () => {
                   <span>Created by {lifeBlock.creator?.name || 'Anonymous'}</span>
                 </div>
               </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleShare}
+                className="flex-shrink-0"
+                title="Share to Instagram"
+              >
+                <Share2 className="w-5 h-5" />
+              </Button>
             </div>
 
             <div className="flex flex-wrap gap-4 text-sm">
